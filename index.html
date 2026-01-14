@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="sq">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biblioteka Online</title>
+    <style>
+        /* --- CSS --- */
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text-color: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --accent-color: #38bdf8;
+            --accent-hover: #0ea5e9;
+            --modal-bg: #000000;
+            --border-color: rgba(255, 255, 255, 0.1);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: var(--text-color);
+            min-height: 100vh;
+            padding-bottom: 50px;
+            /* BLLOKIM LEVIZJEJ E PAQARTA */
+            overscroll-behavior-y: none; /* Ndalon efektin e kërcimit ne lart te poshte */
+            touch-action: pan-y; /* Lejon vetem vertikal scroll, ndalon accidental zoom */
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 20px;
+            background: rgba(15, 23, 42, 0.9);
+            border-bottom: 1px solid var(--border-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            background: linear-gradient(to right, #38bdf8, #818cf8);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-top: 10px;
+            white-space: pre-wrap; /* Lejon qe shkrimi te ndahet ne rreshte te reja */
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 30px auto;
+            padding: 0 15px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+            gap: 15px;
+        }
+
+        .book-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            transition: 0.3s;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            touch-action: manipulation; /* Mbarim i butonave */
+        }
+
+        .book-card:hover {
+            background: rgba(56, 189, 248, 0.15);
+            border-color: var(--accent-color);
+            transform: translateY(-3px);
+        }
+
+        .book-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: white;
+            margin-bottom: 5px;
+            line-height: 1.3;
+        }
+
+        .book-author {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-bottom: 15px;
+        }
+
+        .read-btn {
+            background-color: var(--accent-color);
+            color: #0f172a;
+            border: none;
+            padding: 8px 20px;
+            border-radius: 50px;
+            font-weight: bold;
+            cursor: pointer;
+            width: 100%;
+            max-width: 180px;
+            transition: 0.2s;
+        }
+
+        .read-btn:hover { background-color: var(--accent-hover); }
+
+        /* Modal (Viewer) */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--modal-bg);
+            z-index: 1000;
+            flex-direction: column;
+        }
+        .modal.active { display: flex; }
+        
+        .modal-header {
+            padding: 15px;
+            background: #1e293b;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #334155;
+        }
+
+        .close-btn {
+            background: #ef4444; color: white; border: none;
+            padding: 5px 15px; border-radius: 4px; cursor: pointer;
+        }
+
+        iframe { width: 100%; height: 100%; border: none; background: #fff; }
+
+        /* --- LOADING / SPLASH SCREEN CSS --- */
+        #loader-wrapper {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: #000000;
+            z-index: 9999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            transition: opacity 0.8s ease-out;
+        }
+
+        .bismillah-text {
+            font-size: 3rem;
+            color: #d4af37; /* Ngjyrë Artë */
+            font-family: 'Times New Roman', serif;
+            direction: rtl;
+            margin-bottom: 25px;
+            text-shadow: 0 0 15px rgba(212, 175, 55, 0.6);
+        }
+
+        .loading-line-container {
+            width: 250px;
+            height: 4px;
+            background-color: #333;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+
+        .loading-line {
+            height: 100%;
+            width: 0%;
+            background-color: #38bdf8;
+            animation: loadProgress 2.5s ease-in-out forwards;
+        }
+
+        @keyframes loadProgress {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+
+        /* --- MOBILE OPTIMIZATIONS --- */
+        @media (max-width: 600px) {
+            body { font-size: 14px; }
+            
+            .container { 
+                grid-template-columns: 1fr; /* Nje liber ne rresht */
+                padding: 0 10px; 
+                gap: 10px;
+            }
+            
+            header { padding: 15px 10px; }
+
+            /* BORJA E LOGOS DHE TEKSTIT PER TELEFON */
+            h1 { 
+                font-size: 0.9rem; /* Shkronja e vogel */
+                margin-top: 5px;
+            }
+            
+            header div:first-child { /* Arabishtja */
+                font-size: 0.8rem;
+                margin-bottom: 2px;
+            }
+
+            .read-btn { 
+                max-width: 100%; /* Butoni plotësisht i gjere */
+                padding: 12px;
+                font-size: 1rem;
+            }
+            
+            .bismillah-text { font-size: 2rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- KODI I AUDIOS -->
+    <audio src="bismillah.mp3" autoplay></audio>
+
+    <!-- LOADING SCREEN (Bismillah) -->
+    <div id="loader-wrapper">
+        <div class="bismillah-text">بِسْمِ ٱللَّٰهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ</div>
+        <div class="loading-line-container">
+            <div class="loading-line"></div>
+        </div>
+    </div>
+
+    <header>
+        <div style="color: #F0B13B; font-size: 1.9rem; margin-bottom: 0,5px;">طريق التبيين السلفي</div>
+        <h1>RRUGA E SQARIMIT SELEFIJ<h1>
+    </header>
+
+    <main class="container" id="book-grid">
+        <!-- Librat shfaqen këtu -->
+    </main>
+
+    <!-- Drita e leximit (Modal) -->
+    <div id="pdf-modal" class="modal">
+        <div class="modal-header">
+            <span id="modal-book-title" style="color:white; font-weight:bold;">Titulli</span>
+            <button class="close-btn" onclick="closeModal()">Mbyll</button>
+        </div>
+        <iframe id="pdf-frame" src=""></iframe>
+    </div>
+
+    <script>
+        // ---------------------------------------------------------
+        // LOADING LOGIC
+        // ---------------------------------------------------------
+        window.addEventListener('load', function() {
+            const loader = document.getElementById('loader-wrapper');
+            setTimeout(function() {
+                loader.style.opacity = '0';
+                setTimeout(function() {
+                    loader.style.display = 'none';
+                }, 800); 
+            }, 2500); 
+        });
+
+        // ---------------------------------------------------------
+        // LINKU YË TË GJITHËVE ËSHTË VENDOSUR KËTU
+        // ---------------------------------------------------------
+
+        const books = [
+            { title: "GJYKIMI I ILAHIJEVE (NASHEDAVE)", author: "DIJETAR TE SHUMT", url: "https://drive.google.com/file/d/1Qeimjky-PNMYI-uaP-l52aK02SU4QGWi/preview" },
+            { title: "Si te Falim Namazin", author: "SELEFI.ORG", url: "https://drive.google.com/file/d/1rbSD_CETw6XoF5G1ww05vCDV0t7bZ52Z/preview" },
+            { title: "Fikh-Namazi", author: "Ibn Kajjim el-Xheuzijje", url: "https://drive.google.com/file/d/1qrDwHN3-Lu_U7f-yBOLsJO89UlFa7Aj7/preview" },
+            { title: "Fikh-Pastërtia", author: "Shejkh Ubejd ibn Abdullah el-Xhabirij", url: "https://drive.google.com/file/d/1Xo9ETl3kM6kZjLnNpemJh1Gle4fuGJrM/preview" },
+            { title: "Tu mësojmë fëmijëve Teuhidin", author: "Muhammed Ibën ‘Abdul-Uehhab", url: "https://drive.google.com/file/d/11xwL5Qh50Qj-AO-uqbLizsYRczH1sw5U/preview" },
+            { title: "Dhikri i Mëngjesit i Mbrëmjes dhe Lutjet para gjumit", author: "Shejkh Abdur-Rrazzak el-Bedër", url: "https://drive.google.com/file/d/1pe0rbCSSiZzZ8tULkRLhMzjnDsCda0LE/preview" },
+            { title: "10 Anuluesit e Islamit", author: "Muhammed Ibën ‘Abdul-Uehhab", url: "https://drive.google.com/file/d/1tSV1yCXGwNO5Ek-D74IBGszfkFAuS7Ai/preview" },
+            { title: "Anuluesit E Islamit", author: "Shejkhul-Islam Muhamed Ibn Abdul-Uehab", url: "https://drive.google.com/file/d/127lonuB-_3PCcgIQ6fsUr8hZaIT8lsZN/preview" },
+            { title: "Argumentet e Teuhidit", author: "Muhammed Ibën ‘Abdul-Uehhab", url: "https://drive.google.com/file/d/1LnZ04qgbr5dNF0y3Scey-LTU_UyN-jEI/preview" },
+            { title: "Format e Shirkut te Vogel", author: "Shejkh Salih el-Feuzan", url: "https://drive.google.com/file/d/1OQwVfV4i6awV6cVYVkVAUGBjOy2h-R98/preview" },
+            { title: "Gabimet e Muslimanëve në Teuhid", author: "Shejkh ‘Abdul-‘Azijz er-Rajis", url: "https://drive.google.com/file/d/1icrBO_EKOGK225KWcIl8NW14mtAwE0fz/preview" },
+            { title: "Libri i Teuhidit", author: "Muhammed Ibën ‘Abdul-Uehhab", url: "https://drive.google.com/file/d/1jXW8VHnlrD5rn-nnuP2RjZIYMlIKdDAL/preview" },
+            { title: "Refuzimi ndaj ISIS", author: "Shejkh Muhamed Ibn Hadi el-Medkhalij", url: "https://drive.google.com/file/d/1omtEshdFy1EPJuSsIbBNBc_tlrC16wkH/preview" },
+            { title: "Khauarixhët", author: "Shejkh ‘Ali Nasir el-Fakijhi", url: "https://drive.google.com/file/d/1SvY6XeWP46gZ4o58ZtOBmFKf0Bbtlr7o/preview" },
+            { title: "4 rregullat e shirkut", author: "Muhammed Ibën ‘Abdul-Uehhab", url: "https://drive.google.com/file/d/1dNJGxgLQB6Bfc4_5chjilc7j73xhHCab/preview" },
+            { title: "Etika e Sjelljes ne Islam", author: "Shejkh Sulejman Ruhejli", url: "https://drive.google.com/file/d/13yIUhiL256yiQ8Xk3V2Rq8gfBygwRy_q/preview" },
+            { title: "12 Dobi nga Kaderi", author: "Shejkh Mukbil bin Hadij el-Uadi’ij", url: "https://drive.google.com/file/d/1_Ef0TlPhriY_FGodsyoVvdkGVc8N1npF/preview" },
+            { title: "Havarixhët", author: "Shejkh ‘Ali Nasir el-Fakijhi", url: "https://drive.google.com/file/d/1tUcaOBiE-k9c_h4WzReCVzuePJ8Sg3Lu/preview" },
+            { title: "Cilësitë e një besimtari të vërtetë", author: "El‐Alame ‘Abdu‐Rrahman Ibn Nasir es‐Sa’dij", url: "https://drive.google.com/file/d/1wmxDoSk_ofE0hEfbFyyQ-2DikoE5Ksny/preview" },
+            { title: "Cilësitë e Gruas së Mirë", author: "Muhamed Shuman", url: "https://drive.google.com/file/d/15GcS50kryK5mf7LFzlR6NfUNfjM5ABML/preview" },
+            { title: "Dallimi midis Keshillimit dhe Poshterimit", author: "El-Hafidh Ibn Rexheb el-Hanbeli", url: "https://drive.google.com/file/d/1aB8R6k9NKUY_2SxyNWlNpv5M8ZUIN-p7/preview" },
+            { title: "Disa_prej_formave_të_padrejtësisë që i bëhen Gruas", author: "Abdul Aizijz Aali Shejkh", url: "https://drive.google.com/file/d/1nya_REq7PZIU3-sTiqYlZyRkC4xPp-VA/preview" },
+            { title: "Ese rreth gjakrave natyrale të grave", author: "Shejkh Muhamed ibn Salih el-Uthejmin", url: "https://drive.google.com/file/d/1XMhMyQf23zQS1mnzg8g_osPw3YYx_-4c/preview" },
+            { title: "Fitneja-e-Khauarixhëve", author: "Shejkh-Salih-Aali-Shejkh", url: "https://drive.google.com/file/d/1R8yl8Mr03P8jPZ76NpvkaV7trO8cx0QS/preview" },
+            { title: "Gjykimi Individit duke u bazuar mbi Shoqerine e tij", author: "Shejkh Xhemal ibn Furajhan el-Harithi", url: "https://drive.google.com/file/d/1PDvf8TFcZyEi4DLxDbft-fT6w8AePZ_z/preview" },
+            { title: "Këshilla të Shkëlqyera për ata që janë Penduar", author: "Ebu Abdullah Ahmed Ibn Muhamed esh-Shihhi", url: "https://drive.google.com/file/d/11XvPqVVpGJlMlBt3IfL8D5YO8I3ggdyo/preview" },
+            { title: "Keshille gruas muslimane", author: "Shejkh Salih el - Feuzan", url: "https://drive.google.com/file/d/18niW4htabbWKBlIG5ua5fVT3p4Pu-e50/preview" },
+            { title: "Ku është Allahu", author: "28", url: "https://drive.google.com/file/d/1e1n1JTrHThlggcZvrwQRLkl-b56nXiUS/preview" },
+            { title: "Largimi i dyshimeve", author: "Rasti Ali Hasen", url: "https://drive.google.com/file/d/1evTOlzu7tCUX33jE7z3l4z12DdefbDJX/preview" },
+            { title: "Manual i shkurtër për ata që sapo kanë hyrë në Islam", author: "‘Abdul-‘Azijz Ibn Jahja el-Bura’i", url: "https://drive.google.com/file/d/1ct_teZVgc2UdQMKsCaKDWEwTogyf0Dxy/preview" },
+            { title: "Menhexh", author: "31", url: "https://drive.google.com/file/d/1PIS4ogBShzNFemfKB_XvMKL9GtxcICtp/preview" },
+            { title: "Menhexhi i Shenjtë Selefij", author: "Shejkh Albani", url: "https://drive.google.com/file/d/1PDJO7WuqyGnDvqS65zZKbYPKFxNEwxHX/preview" },
+            { title: "Njekja e Islamit", author: "El - Imam ‘Abdul - ‘Azijz Ibn ‘Abdullah Ibn Baz", url: "https://drive.google.com/file/d/1AnwraVXrNsHxx2g0GZ0Jz-FXFrse8skn/preview" },
+            { title: "O ju qe besono kijeni frike Allahun", author: "Shejkh ‘Abdul-‘Azijz Ibën Jahja el-Bura’ij", url: "https://drive.google.com/file/d/15Pqxq4TUSJEND-1Sjugv2xxrP8eQ95f5/preview" },
+            { title: "Parime të Menhexhit që duhet t’i dijë çdo Selefij", author: "Shejkh Ahmed bin Umer Bazmul", url: "https://drive.google.com/file/d/1ByPeop9aWXfg5JSfO6hn1rYIl4Yjzs6/preview" },
+            { title: "Pozita që ka Namazi në Islam dhe gjurmët e tij të mira", author: "Shejkh Rabij’ Ibn Hadi el-Medkhalij", url: "https://drive.google.com/file/d/1N1yJC3bTuLfuVM9EPRYGP0VIw2VRR71A/preview" },
+            { title: "Rendi familjar ne Islam", author: "Shejkh Muhamed Aman el-Xhamij", url: "https://drive.google.com/file/d/1-_u8TkDnVzSwnfokCiGLMshQ7ZXwrB2p/preview" },
+            { title: "Rreth bidateve dhe bidatgjive", author: "Imam Shatibij", url: "https://drive.google.com/file/d/130hJ8ooW81qtf6W8MCuMQ3--jlv210Gt/preview" },
+            { title: "Sexhdeja e Harreses", author: "Shejkh Muhamed Ibn Salih el-Uthejmin", url: "https://drive.google.com/file/d/1-D7DJiGILybKqhZ-RAv8u_OGr7iAGdK7/preview" },
+            { title: "Shehadeti dhe Kushtet e tij", author: "Shpjegimi i Dëshmisë La ilahe il lAllah", url: "https://drive.google.com/file/d/1h8q8zg7-XszRlfFMxjyFRV9lt_CCBZTs/preview" },
+            { title: "Shirku, Kuptimi Dhe Llojet e Tij", author: "41", url: "https://drive.google.com/file/d/11jHNVSL_6VToXQ56Ahd7WGLDUvhRjKPV/preview" },
+            { title: "Shkaqet e Shfaqjes së Mendimit të Kharixhizmit Bashkëkohor", author: "Shejkh ‘Abdul-Muhsin el-‘Ubejkan", url: "https://drive.google.com/file/d/11X-nbEduwL-iAfSpLVXy-YSteQ1sKOfj/preview" },
+            { title: "Sira e Umer Ibnul Khattabit radijAllahu anhu", author: "Shejkh Muhamed Ibën Salih el-‘Uthejmin", url: "https://drive.google.com/file/d/1QsjMC3pWuUHUKM67mp64kpciDE2IcFP2/preview" },
+            { title: "Tallja me Fenë është Kufër", author: "Shejkh Salih el-Feuzan", url: "https://drive.google.com/file/d/10lXLs05lInvw62Ubds3baKL6cZIL6lWd/preview" },
+            { title: "Të kapemi fort pas menhexhit Selefij", author: "Rabij' Ibn Hadi el - Medkhalij", url: "https://drive.google.com/file/d/1wxZrZwgM4cU4ovjXSbmxQ8IG72hey2Wd/preview" },
+            { title: "Të_drejtat_e_Allahut_mbi_robërit", author: "Rabij' Ibn Hadi el - Medkhalij", url: "https://drive.google.com/file/d/1nlOTkEUHXcupLdNAWZU-2Eq_cjuOQKIb/preview" },
+            { title: "Tekfiri Tefxhiri dhe Paqja", author: "Shejkh Abdul-Muhsin el Abbad el-Bedr", url: "https://drive.google.com/file/d/1ifN3RhQ5ipDWsdiPoDdCJXejiEBibalq/preview" },
+            { title: "Shpjegimi i Tre Parimeve", author: "Abdullah En Nexhmi", url: "https://drive.google.com/file/d/1Pk6jySQAr7ptNp-EHg8XBFDvulBPkEnp/preview" },
+            { title: "Tri parimet themelore", author: "Muhammed Ibën ‘Abdul-Uehhab", url: "https://drive.google.com/file/d/15PlgSIipkWchdTfX-KYr0Hyj48PvXBVo/preview" },
+            { title: "Riperteritja e Imanit", author: "Abdurr Rrazzaak ibn Abdul-Muhsin el-Beder", url: "https://drive.google.com/file/d/1hEiDOLiH-Mrz52MSA8WaA2PRsJp0hSy5/preview" },
+            { title: "Selefizmi eshte Anija e Nuhut Alejhisselam", author: "Autori 51", url: "https://drive.google.com/file/d/1t7GDcSX8pK2fmJZ8xDrXZCGdO2Ws9OqM/preview" },
+            { title: "Atentat me bomba ne peshoren Islamit", author: "Abdur-Rrazzak el-Beder", url: "https://drive.google.com/file/d/1KMr1IGOO_KKBi1c0kpasUTvTFgURiAL0/preview" },
+            { title: "Delirja dhe Edukimi", author: "Muhammed Nasirudin el-Albanij", url: "https://drive.google.com/file/d/1GJ8_a8c_UuQ_v35Y8HLbQJLsYrQuUk59/preview" },
+            { title: "Shpjegimi i Fjales Taghut", author: "Muhamed ibën Abdul-Uehhab", url: "https://drive.google.com/file/d/16ykTRxPCKdPGWf2_TjQkAEKjWdMzRazP/preview" },
+            { title: "Shpjegimi i Emrave te Bukur te Allahut", author: "Shejkh Abdurrezak El-Bedër", url: "https://drive.google.com/file/d/19vROloBKljwgPlj_EVKJpDVlie0SZ_Ac/preview" },
+            { title: "Çfarë është Daueti Selefij", author: "Ahmed ibn Jahja en-Nexhmij", url: "https://drive.google.com/file/d/1adlhcIdqZ4s5xYHgiBpXFFAK0HrqDUM1/preview" },
+            { title: "Përmbledhje e Akides së Selefëve të Devotshëm", author: "Shejkh Salih el-Feuzan", url: "https://drive.google.com/file/d/1_RgZRZY0JinHPUcmOH34W5IBTarVldnX/preview" },
+            { title: "Akideja Tahauijeh", author: "Shejkh Ibën Bazit", url: "https://drive.google.com/file/d/1JD9ihf-25GE2DjPC5_BuV7WM9qvHMkY_/preview" },
+            { title: "Këshillë e përgjithshme rreth disa prej gjynaheve të mëdha", author: "Shejkh Abdul Azijz bin Abdilah bin-Baz", url: "https://drive.google.com/file/d/1ZdBq-M5qRpqrHyPYkuGvDMW8ag7Lela6/preview" },
+            { title: "Fetva rreth gjidhënies", author: "Shejkh Abdul Azijz bin Abdilah bin-Baz", url: "https://drive.google.com/file/d/1FO0qGC853MxASJxONE012uq5RDFJMxAa/preview" },
+            { title: "Çelësi i Tokës së Paqes me Vërtetimin e Dy Dëshmieve të Islamit", author: "Hafidh iben Ahmed-el-Hakemij", url: "https://drive.google.com/file/d/1HnW_dO6r7KgAORJy0p3TV-bpV-JGrFnO/preview" },
+            { title: "Pozita e Sunetit dhe ndikimi i dijetareve te Sunetit tek njerezit", author: "Muhamed bin Hadij el-Medkhalij", url: "https://drive.google.com/file/d/1P8UFTUlriapPDAEe-SzMJoSQdx5EIszn/preview" },
+            { title: "Paralajmërim për fitnen e tekfirit", author: "Muhammed Nasiruddin el-Albani", url: "https://drive.google.com/file/d/1VNH8dDGQCj4V4S5HAVegPswv5PDgF96t/preview" },
+            { title: "Shpjegimi i Fjalës së Teuhidit", author: "Rabij iben Hadi el-Medkhalij", url: "https://drive.google.com/file/d/1GjCOm9lHGBhxAMLcWyXrZhIJ-IurIsK1/preview" },
+            { title: "Fragmente nga kuptimet e sures el-Fatiha", author: "Shejkh Rabij iben Hadij el-Medkhalij", url: "https://drive.google.com/file/d/1g5KChB3TAiASveCyJaBwk3hI6H4UG50J/preview" },
+            { title: "Tri Parimet Themelore", author: "Shejkhul Islam Muhamed Iben Abdul Uehhab", url: "https://pdflink.to/31f741d8/preview" },
+            { title: "Studim rreth broshurës Keshfush Shubuhat Fij Teuhid", author: "Shejkhul Islam Muhamed Iben Abdul Uehhab", url: "https://pdflink.to/d0323967/preview" }
+        ];
+
+        // ---------------------------------------------------------
+        // KODI QË BRENDRON FAQJEN
+        // ---------------------------------------------------------
+
+        const gridContainer = document.getElementById('book-grid');
+        const modal = document.getElementById('pdf-modal');
+        const modalTitle = document.getElementById('modal-book-title');
+        const iframe = document.getElementById('pdf-frame');
+
+        function renderBooks() {
+            gridContainer.innerHTML = ''; 
+            books.forEach(book => {
+                const card = document.createElement('div');
+                card.className = 'book-card';
+                card.innerHTML = `
+                    <div style="width:100%">
+                        <div class="book-title">${book.title}</div>
+                        <div class="book-author">${book.author}</div>
+                    </div>
+                    <button class="read-btn" onclick="openBook('${book.url}', '${book.title}')">Lexo</button>
+                `;
+                gridContainer.appendChild(card);
+            });
+        }
+
+        function openBook(url, title) {
+            modalTitle.innerText = title;
+            iframe.src = url;
+            modal.classList.add('active');
+            // BLOKOJME SCROLL-IN E FAQES KRYESORE KUR HAPEN LIBRAT
+            document.body.style.overflow = 'hidden'; 
+        }
+
+        function closeModal() {
+            modal.classList.remove('active');
+            iframe.src = "";
+            // KTHIMI I SCROLL-IT NE NORMAL
+            document.body.style.overflow = 'auto';
+        }
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+        renderBooks();
+    </script>
+</body>
+</html>
