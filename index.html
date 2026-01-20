@@ -5,9 +5,63 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Kutub-Selefij</title>
     <style>
-        /* =========================================
-           1. BIBLIOTEKA CSS (PËRDITËSIME SFONDI)
-           ========================================= */
+        <canvas id="starfield"></canvas>
+
+<script>
+const canvas = document.getElementById('starfield');
+const ctx = canvas.getContext('2d');
+
+let stars = [];
+const STAR_COUNT = 300;
+
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resize);
+resize();
+
+// Krijojmë yjet
+for (let i = 0; i < STAR_COUNT; i++) {
+    stars.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: Math.random() * 2 + 1,
+        speed: Math.random() * 2 + 1
+    });
+}
+
+function animate() {
+    // Sfond transparent ose i zi
+    ctx.fillStyle = 'rgba(0,0,0,0.8)'; 
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = 'white';
+    stars.forEach(star => {
+        star.y += star.speed;           // Lëvizja poshtë
+        if (star.y > canvas.height) {   // Kur kalon poshtë, ripoziciono lart
+            star.y = 0;
+            star.x = Math.random() * canvas.width;
+        }
+        ctx.beginPath();
+        ctx.arc(star.x, star.y, star.size, 0, Math.PI*2);
+        ctx.fill();
+    });
+
+    requestAnimationFrame(animate);
+}
+animate();
+</script>
+
+<style>
+canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 0;
+}
+</style>
+
         :root {
             --card-bg: rgba(15, 20, 30, 0.85);
             --text-color: #f1f5f9;
